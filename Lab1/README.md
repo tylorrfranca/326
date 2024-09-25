@@ -6,10 +6,10 @@ for interprocess communication by yourself), write the contents of the source fi
 a child process read from the pipe and write to the destination file.
 
 ## How-to run (Using Linux & gcc)
-Ensure `gcc` is installed, if it isn't run:
-`sudo apt-get install gcc`
-
-Then run: 
-`gcc filecopy.c -o run`
-(Optionally generate a text file) `echo some text > input.txt`
+Ensure `gcc` is installed, if it isn't run:__
+`sudo apt-get install gcc`__
+Then run:__
+`gcc filecopy.c -o run`__
+(Optionally generate a text file)__ 
+`echo some text > input.txt`__
 `./run input.txt output.txt`
