@@ -24,7 +24,7 @@ int main(int argc, char* argv[])
 
     // Open source and target files
     int source_fd = open(argv[1], O_RDONLY);
-    int target_fd = open(argv[2], O_WRONLY | O_TRUNC | O_CREAT, 0666);
+    int target_fd = open(argv[2], O_WRONLY | O_CREAT |O_TRUNC, 0666);
 
     if (source_fd == -1 || target_fd == -1) 
     {
