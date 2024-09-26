@@ -15,28 +15,28 @@ int main(int argc, char* argv[])
     pid_t child_pid;
     char buffer[BUFFER_SIZE];
 
-    // Check if the correct number of arguments is provided
+    // Make sure two arguments are passed
     if (argc != 3) 
     {
         fprintf(stderr, "ERROR: Need exactly 2 parameters.\n");
-        exit(EXIT_FAILURE);
+        exit(1);
     }
 
     // Open source and target files
-    int source_fd = open(argv[1], O_RDONLY);
-    int target_fd = open(argv[2], O_WRONLY | O_CREAT |O_TRUNC, 0666);
+    int sourceFile = open(argv[1], O_RDONLY);
+    int targetFile = open(argv[2], O_WRONLY | O_CREAT |O_TRUNC, 0666);
 
-    if (source_fd == -1 || target_fd == -1) 
+    if (sourceFile == -1 || targetFile == -1) 
     {
         perror("ERROR: Unable to open file");
-        exit(EXIT_FAILURE);
+        exit(1);
     }
 
     // Create pipe
     if (pipe(pipe_fd) == -1) 
     {
         perror("ERROR: Pipe creation failed");
-        exit(EXIT_FAILURE);
+        exit(1);
     }
 
     // Fork to create a child process
@@ -45,37 +45,37 @@ int main(int argc, char* argv[])
     if (child_pid == -1) 
     {
         perror("ERROR: Fork failed");
-        exit(EXIT_FAILURE);
+        exit(1);
     }
 
     if (child_pid == 0) // Child process
     {
-        close(pipe_fd[1]); // Close write-end of the pipe
+        close(pipe_fd[1]); // Close write-end of pipe
 
-        // Read from the pipe and write to the target file
-        ssize_t bytes_read;
-        while ((bytes_read = read(pipe_fd[0], buffer, sizeof(buffer))) > 0) 
+        // Read from pipe and write to target file
+        ssize_t bytesRead;
+        while ((bytesRead = read(pipe_fd[0], buffer, sizeof(buffer))) > 0) 
         {
-            write(target_fd, buffer, bytes_read);
+            write(targetFile, buffer, bytesRead);
         }
 
-        close(pipe_fd[0]); // Close read-end of the pipe
-        close(target_fd);  // Close target file
+        close(pipe_fd[0]); // Close read-end of pipe
+        close(targetFile);  // Close target file
     } 
     else // Parent process
     {
-        close(pipe_fd[0]); // Close read-end of the pipe
+        close(pipe_fd[0]); // Close read-end of pipe
 
-        // Read from the source file and write to the pipe
-        ssize_t bytes_read;
-        while ((bytes_read = read(source_fd, buffer, sizeof(buffer))) > 0) 
+        // Read from source file and write to pipe
+        ssize_t bytesRead;
+        while ((bytesRead = read(sourceFile, buffer, sizeof(buffer))) > 0) 
         {
-            write(pipe_fd[1], buffer, bytes_read);
+            write(pipe_fd[1], buffer, bytesRead);
             memset(buffer, 0, sizeof(buffer));
         }
 
-        close(pipe_fd[1]); // Close write-end of the pipe
-        close(source_fd);  // Close source file
+        close(pipe_fd[1]); // Close write-end of pipe
+        close(sourceFile);  // Close source file
         wait(NULL);        // Wait for child process to finish
     }
 
