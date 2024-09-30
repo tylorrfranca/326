@@ -9,7 +9,7 @@ a child process read from the pipe and write to the destination file.
 Ensure `gcc` is installed, if it isn't run:<br/>
 `sudo apt-get install gcc`<br/>
 Then run:<br/>
-`gcc filecopy.c -o run`<br/>
+`gcc filecopy.c -o filecopy`<br/>
 (Optionally generate a text file)<br/> 
 `echo some text > input.txt`<br/>
-`./run input.txt output.txt`
+`./filecopy input.txt output.txt`
