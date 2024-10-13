@@ -5,69 +5,74 @@
 #include <cstdlib>
 
 const int NUM_PHILOSOPHERS = 5;
-const int MAX_COURSES = 3;
 
-// mutexes for forks
-pthread_mutex_t forks[NUM_PHILOSOPHERS];
-// condition variables for fork availability
-pthread_cond_t cond_var[NUM_PHILOSOPHERS];
-// track fork availability
-bool forks_available[NUM_PHILOSOPHERS];
+// philosopher states
+enum { THINKING, HUNGRY, EATING } state[NUM_PHILOSOPHERS];
+
+// fork states
+bool fork_avail[NUM_PHILOSOPHERS];
+
+// mutex for synchronization
+pthread_mutex_t mutex;
+
+// condition variables for philosophers
+pthread_cond_t self[NUM_PHILOSOPHERS];
 
 // mutex for printing
 pthread_mutex_t print_mutex;
 
-// safely print to console
+// safe console print
 void print(const std::string& message) {
     pthread_mutex_lock(&print_mutex);
     std::cout << message << std::endl;
     pthread_mutex_unlock(&print_mutex);
 }
 
-// pick up forks
-void pickup_forks(int philosopher_number) {
-    int id = philosopher_number;
-    int left_fork = philosopher_number;
-    int right_fork = (philosopher_number + 1) % NUM_PHILOSOPHERS;
-
-    // lock left fork
-    pthread_mutex_lock(&forks[left_fork]);
-
-    // wait for both forks
-    while (!forks_available[left_fork] || !forks_available[right_fork]) {
-        pthread_cond_wait(&cond_var[left_fork], &forks[left_fork]);
+// check if philosopher can eat
+void test(int i) {
+    int left = (i + NUM_PHILOSOPHERS - 1) % NUM_PHILOSOPHERS;
+    int right = (i + 1) % NUM_PHILOSOPHERS;
+    if (state[left] != EATING && state[i] == HUNGRY && state[right] != EATING &&
+        fork_avail[left] && fork_avail[i]) {
+        // start eating if neighbors aren't and forks are available
+        state[i] = EATING;
+        fork_avail[left] = false;
+        fork_avail[i] = false;
+        pthread_cond_signal(&self[i]); // signal to start eating
     }
+     // show fork state
+    print("Fork " + std::to_string(left) + " is with Philosopher " + std::to_string(i));
+    print("Fork " + std::to_string(i) + " is with Philosopher " + std::to_string(i));
+}
 
-    // pick up forks
-    forks_available[left_fork] = false;
-    print("Philosopher " + std::to_string(id) + " has picked up fork #" + std::to_string(left_fork));
-    forks_available[right_fork] = false;
-    print("Philosopher " + std::to_string(id) + " has picked up fork #" + std::to_string(right_fork));
-
-    print("Philosopher " + std::to_string(id) + " has both forks and is ready to eat.");
-    pthread_mutex_unlock(&forks[left_fork]);
+// pick up forks
+void pickup_forks(int i) {
+    pthread_mutex_lock(&mutex);
+    state[i] = HUNGRY;
+    print("Philosopher " + std::to_string(i) + " is hungry.");
+    
+    test(i);
+    if (state[i] != EATING) {
+        pthread_cond_wait(&self[i], &mutex); // wait if can't eat
+    }    
+ 
+    pthread_mutex_unlock(&mutex);
 }
 
 // return forks
-void return_forks(int philosopher_number) {
-    int id = philosopher_number;
-    int left_fork = philosopher_number;
-    int right_fork = (philosopher_number + 1) % NUM_PHILOSOPHERS;
-
-    // lock left fork
-    pthread_mutex_lock(&forks[left_fork]);
-
-    // mark forks available
-    forks_available[left_fork] = true;
-    print("Philosopher " + std::to_string(id) + " has dropped fork #" + std::to_string(left_fork));
-    forks_available[right_fork] = true;
-    print("Philosopher " + std::to_string(id) + " has dropped fork #" + std::to_string(right_fork));
-
-    // signal availability
-    pthread_cond_signal(&cond_var[left_fork]);
-    pthread_cond_signal(&cond_var[right_fork]);
-
-    pthread_mutex_unlock(&forks[left_fork]);
+void return_forks(int i) {
+    pthread_mutex_lock(&mutex);
+    state[i] = THINKING;
+    int left = (i + NUM_PHILOSOPHERS - 1) % NUM_PHILOSOPHERS;
+    int right = (i + 1) % NUM_PHILOSOPHERS;
+    fork_avail[left] = true;
+    fork_avail[i] = true;
+    print("Philosopher " + std::to_string(i) + " has returned the forks.");
+    
+    // test neighbors
+    test(left); 
+    test(right); 
+    pthread_mutex_unlock(&mutex);
 }
 
 // philosopher thread
@@ -75,20 +80,23 @@ void* philosopher(void* arg) {
     int id = *(int*)arg;
     int eat_count = 0;
 
-    while (eat_count < MAX_COURSES) {
-        print("Philosopher " + std::to_string(id) + " is thinking.");
-        sleep(rand() % 3 + 1);  // think
+    // end loop arbitrarily after 3 meals
+    while (eat_count < 3) {
+        int think_time = rand() % 3 + 1;
+        int eat_time = rand() % 3 + 1;
+        print("Philosopher " + std::to_string(id) + " spent " + std::to_string(think_time) + "s thinking.");
+        sleep(think_time);  // simulate thinking
 
         pickup_forks(id);
 
-        print("Philosopher " + std::to_string(id) + " is eating.");
-        sleep(rand() % 3 + 1);  // eat
+        print("Philosopher " + std::to_string(id) + " spent " + std::to_string(eat_time) + "s eating.");
+        sleep(eat_time);  // simulate eating
+        eat_count++;
 
         return_forks(id);
-        eat_count++;
     }
 
-    print("Philosopher " + std::to_string(id) + " has finished a full course and is leaving the table.");
+    print("Philosopher " + std::to_string(id) + " has finished their meal and is leaving the table.");
     return nullptr;
 }
 
@@ -96,28 +104,36 @@ int main() {
     std::vector<pthread_t> threads(NUM_PHILOSOPHERS);
     std::vector<int> ids(NUM_PHILOSOPHERS);
 
-    // init mutexes and conditions
+    // initialize mutex and condition variables
+    pthread_mutex_init(&mutex, nullptr);
+    pthread_mutex_init(&print_mutex, nullptr);
     for (int i = 0; i < NUM_PHILOSOPHERS; ++i) {
-        pthread_mutex_init(&forks[i], nullptr);
-        pthread_cond_init(&cond_var[i], nullptr);
-        forks_available[i] = true;  // all forks available
+        pthread_cond_init(&self[i], nullptr);
+        state[i] = THINKING; // start thinking
+        fork_avail[i] = true; // all forks are initially available
     }
 
-    // create threads
+    // Print initial fork state
+    for (int i = 0; i < NUM_PHILOSOPHERS; ++i) {
+        print("Fork " + std::to_string(i) + " is available");
+    }
+
+    // create philosopher threads
     for (int i = 0; i < NUM_PHILOSOPHERS; ++i) {
         ids[i] = i;
         pthread_create(&threads[i], nullptr, philosopher, &ids[i]);
     }
 
-    // join threads
+    // join philosopher threads
     for (int i = 0; i < NUM_PHILOSOPHERS; ++i) {
         pthread_join(threads[i], nullptr);
     }
 
     // cleanup
+    pthread_mutex_destroy(&mutex);
+    pthread_mutex_destroy(&print_mutex);
     for (int i = 0; i < NUM_PHILOSOPHERS; ++i) {
-        pthread_mutex_destroy(&forks[i]);
-        pthread_cond_destroy(&cond_var[i]);
+        pthread_cond_destroy(&self[i]);
     }
 
     std::cout << "All philosophers have finished eating and left the table." << std::endl;
