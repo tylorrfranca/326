@@ -8,17 +8,28 @@
 #include "task.h"
 #include "list.h"
 #include "cpu.h"
+#include "schedulers.h"
 
-//Your code and design here
-extern struct node *head;
+// Define head here instead of just declaring it extern
+struct node *head = NULL;
 
-void fcfs_schedule() {
+// Add the missing add function
+void add(char *name, int priority, int burst) {
+    Task *newTask = malloc(sizeof(Task));
+    newTask->name = name;
+    newTask->priority = priority;
+    newTask->burst = burst;
+    
+    insert(&head, newTask);
+}
+
+void schedule() {
     struct node *current = head; 
 
     while(current != NULL){
         Task* task = current -> task;
 
-        run(task->name, task->burst);
+        run(task, task->burst);
 
         current = current->next; 
     }
