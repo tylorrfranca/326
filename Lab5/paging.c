@@ -3,7 +3,7 @@
 #define MAX_FRAMES 10
 #define MAX_PAGES 50
 
-// Function to check if a page is in memory
+// check if page exists in memory
 bool isPagePresent(int page, int frames[], int frameSize) {
     for (int i = 0; i < frameSize; i++) {
         if (frames[i] == page)
@@ -12,7 +12,7 @@ bool isPagePresent(int page, int frames[], int frameSize) {
     return false;
 }
 
-// Function to print memory state
+// print current memory state
 void printMemoryState(int frames[], int frameSize) {
     for (int i = 0; i < frameSize; i++) {
         if (frames[i] == -1)
@@ -23,13 +23,13 @@ void printMemoryState(int frames[], int frameSize) {
     printf("\n");
 }
 
-// FIFO Page Replacement Algorithm
+// fifo page replacement
 int fifo(int pages[], int pageCount, int frameSize) {
     int frames[MAX_FRAMES];
     int pageFaults = 0;
     int currentIndex = 0;
     
-    // Initialize frames with -1 (empty)
+    // init frames as empty
     for (int i = 0; i < frameSize; i++) {
         frames[i] = -1;
     }
@@ -53,13 +53,13 @@ int fifo(int pages[], int pageCount, int frameSize) {
     return pageFaults;
 }
 
-// LRU Page Replacement Algorithm
+// lru page replacement
 int lru(int pages[], int pageCount, int frameSize) {
     int frames[MAX_FRAMES];
     int lastUsed[MAX_FRAMES];
     int pageFaults = 0;
     
-    // Initialize frames with -1 (empty)
+    // init frames as empty
     for (int i = 0; i < frameSize; i++) {
         frames[i] = -1;
         lastUsed[i] = 0;
@@ -70,7 +70,7 @@ int lru(int pages[], int pageCount, int frameSize) {
         printf("\nReference page %d: ", pages[i]);
         
         if (!isPagePresent(pages[i], frames, frameSize)) {
-            // Find the least recently used page
+            // find least recently used
             int lruIndex = 0;
             for (int j = 1; j < frameSize; j++) {
                 if (lastUsed[j] < lastUsed[lruIndex])
@@ -82,7 +82,7 @@ int lru(int pages[], int pageCount, int frameSize) {
             pageFaults++;
             printf("Page Fault! ");
         } else {
-            // Update last used time for the page
+            // update last used time
             for (int j = 0; j < frameSize; j++) {
                 if (frames[j] == pages[i]) {
                     lastUsed[j] = i;
@@ -101,11 +101,11 @@ int lru(int pages[], int pageCount, int frameSize) {
 int main() {
     int pages[MAX_PAGES], pageCount, frameSize;
     
-    // Input
+    // input
     printf("Enter the number of pages: ");
     scanf("%d", &pageCount);
     
-    printf("Enter the page reference sequence: ");
+    printf("Enter the page reference sequence (e.g. 1 2 3 4 1 2 5 1 2 3): ");
     for (int i = 0; i < pageCount; i++) {
         scanf("%d", &pages[i]);
     }
@@ -113,11 +113,11 @@ int main() {
     printf("Enter the number of frames: ");
     scanf("%d", &frameSize);
     
-    // Run FIFO
+    // run fifo
     int fifoFaults = fifo(pages, pageCount, frameSize);
     printf("\nTotal Page Faults (FIFO): %d\n", fifoFaults);
     
-    // Run LRU
+    // run lru
     int lruFaults = lru(pages, pageCount, frameSize);
     printf("\nTotal Page Faults (LRU): %d\n", lruFaults);
     
