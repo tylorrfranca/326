@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdbool.h>
+#include <string.h>
 #define MAX_FRAMES 10
 #define MAX_PAGES 50
 
@@ -99,15 +100,18 @@ int lru(int pages[], int pageCount, int frameSize) {
 }
 
 int main() {
-    int pages[MAX_PAGES], pageCount, frameSize;
-    
-    // input
-    printf("Enter the number of pages: ");
-    scanf("%d", &pageCount);
+    int pages[MAX_PAGES], frameSize;
+    char sequence[200];
+    int pageCount = 0;
     
     printf("Enter the page reference sequence (e.g. 1 2 3 4 1 2 5 1 2 3): ");
-    for (int i = 0; i < pageCount; i++) {
-        scanf("%d", &pages[i]);
+    fgets(sequence, sizeof(sequence), stdin);
+    
+    // calculate number of pages based on sequence
+    char *token = strtok(sequence, " \n");
+    while (token != NULL && pageCount < MAX_PAGES) {
+        pages[pageCount++] = atoi(token);
+        token = strtok(NULL, " \n");
     }
     
     printf("Enter the number of frames: ");
